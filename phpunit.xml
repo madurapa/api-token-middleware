@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit backupGlobals="false"
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         backupGlobals="false"
          backupStaticAttributes="false"
          bootstrap="vendor/autoload.php"
          colors="true"
@@ -7,23 +9,34 @@
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
          processIsolation="false"
-         stopOnFailure="false">
+         stopOnFailure="false"
+         beStrictAboutTestsThatDoNotTestAnything="true">
+    <!-- Define test suites to run -->
     <testsuites>
         <testsuite name="Unit">
             <directory suffix="Test.php">./tests</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
+
+    <!-- Configure code coverage reporting -->
+    <coverage processUncoveredFiles="true">
+        <include>
             <directory suffix=".php">./app</directory>
-        </whitelist>
-    </filter>
+            <directory suffix=".php">./vendor/uogsoe/apitokenmiddleware/src</directory>
+        </include>
+        <report>
+            <html outputDirectory="coverage"/>
+            <text outputFile="coverage.txt"/>
+        </report>
+    </coverage>
+
+    <!-- Set environment variables for testing -->
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="CACHE_DRIVER" value="array"/>
         <env name="SESSION_DRIVER" value="array"/>
-        <env name="QUEUE_DRIVER" value="sync"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="DB_CONNECTION" value="testing"/>
-	<env name="APP_KEY" value="base64:XZIR4ew4eM+kDTjst7Bitk3g6JGwrpaM+1MzfZ3xs1k="/>
+        <env name="APP_KEY" value="base64:XZIR4ew4eM+kDTjst7Bitk3g6JGwrpaM+1MzfZ3xs1k="/>
     </php>
 </phpunit>
