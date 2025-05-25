@@ -3,67 +3,68 @@
 namespace UoGSoE\ApiTokenMiddleware;
 
 use Closure;
-use UoGSoE\ApiTokenMiddleware\ApiToken;
+use App\Models\ApiToken;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class BasicApiTokenMiddleware
 {
-    const CODE = 401;
-    const MESSAGE = 'Unauthorized';
+    public const CODE = 401;
+    public const MESSAGE = 'Unauthorized';
 
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
+     * @param Request $request
+     * @param Closure $next
+     * @param string ...$services
      * @return mixed
      */
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next, string ...$services): mixed
     {
-        $services = array_except(func_get_args(), [0,1]);
         if (!$this->authorized($request, $services)) {
             return response()->json(['message' => self::MESSAGE], self::CODE);
         }
+
         return $next($request);
     }
 
     /**
-     * Checks an incoming token against one in the database
+     * Check if the request is authorized based on the provided token and services.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param array $service
+     * @param Request $request
+     * @param array<string> $services
+     * @return bool
      */
-    public function authorized($request, $services)
+    protected function authorized(Request $request, array $services): bool
     {
         $passedToken = $this->extractToken($request);
-        if (! $passedToken) {
+
+        if (!$passedToken || empty($services)) {
             return false;
         }
 
-        $apiTokens = ApiToken::whereIn('service', $services)->get();
-        if ($apiTokens->isEmpty()) {
+        // Optimize query to fetch only the first matching token
+        $apiToken = ApiToken::whereIn('service', $services)
+            ->whereNotNull('token')
+            ->first();
+
+        if (!$apiToken) {
             return false;
         }
 
-        return !is_null($apiTokens->first(function ($apiToken) use ($passedToken) {
-            return \Hash::check($passedToken, $apiToken->token);
-        }));
+        return Hash::check($passedToken, $apiToken->token);
     }
 
     /**
-     * Try to find the api token in the request
+     * Extract the API token from the request.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param Request $request
+     * @return string|null
      */
-    public function extractToken($request)
+    protected function extractToken(Request $request): ?string
     {
-        if ($request->bearerToken()) {
-            return $request->bearerToken();
-        }
-
-        if ($request->input('api_token')) {
-            return $request->input('api_token');
-        }
-
-        return null;
+        return $request->bearerToken() ?? $request->input('api_token');
     }
 }

@@ -2,9 +2,12 @@
 
 namespace UoGSoE\ApiTokenMiddleware\Commands;
 
+use App\Models\ApiToken;
 use Illuminate\Console\Command;
-use UoGSoE\ApiTokenMiddleware\ApiToken;
 
+/**
+ * Console command to delete an API token for a specified service.
+ */
 class DeleteToken extends Command
 {
     /**
@@ -12,19 +15,17 @@ class DeleteToken extends Command
      *
      * @var string
      */
-    protected $signature = 'apitoken:delete {service}';
+    protected $signature = 'apitoken:delete {service : The service name of the API token to delete}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Remove an API token';
+    protected $description = 'Delete an API token for a specified service';
 
     /**
      * Create a new command instance.
-     *
-     * @return void
      */
     public function __construct()
     {
@@ -34,17 +35,36 @@ class DeleteToken extends Command
     /**
      * Execute the console command.
      *
-     * @return mixed
+     * @return int Exit code (0 for success, 1 for failure).
      */
-    public function handle()
+    public function handle(): int
     {
+        // Get the service name from the command argument
         $service = $this->argument('service');
-        $token = ApiToken::where('service', '=', $service)->first();
-        if (! $token) {
-            $this->error('No such service');
-            exit;
+
+        // Validate the service name
+        if (empty($service)) {
+            $this->error('Service name cannot be empty.');
+            return 1;
         }
-        $token->delete();
-        $this->info("Token for {$service} removed");
+
+        try {
+            // Attempt to find and delete the token for the given service
+            $deleted = ApiToken::where('service', $service)->delete();
+
+            // Check if a token was deleted
+            if ($deleted === 0) {
+                $this->error("No token found for service '$service'.");
+                return 1;
+            }
+
+            // Confirm successful deletion
+            $this->info("Token for service '$service' deleted successfully.");
+            return 0; // Success
+        } catch (\Exception $e) {
+            // Handle unexpected errors (e.g., database issues)
+            $this->error('Failed to delete token: ' . $e->getMessage());
+            return 1;
+        }
     }
 }
