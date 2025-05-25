@@ -2,128 +2,191 @@
 
 namespace Tests;
 
+use App\Models\ApiToken;
+use Illuminate\Support\Facades\Route;
+use Tests\TestCase;
+
+/**
+ * Test case for API token middleware functionality.
+ */
 class MiddlewareTest extends TestCase
 {
-    /** @test */
-    public function using_an_invalid_token_returns_unauthorised()
+    /**
+     * Test that an invalid token returns a 401 Unauthorized response.
+     *
+     * @return void
+     */
+    public function test_using_an_invalid_token_returns_unauthorised(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a valid token for the 'test' service
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test', ['api_token' => 'invalidtoken']);
+        // Send a request with an invalid token
+        $response = $this->call('GET', '/_test', ['api_token' => 'invalidtoken']);
 
+        // Assert that the response is 401 Unauthorized
         $response->assertStatus(401);
     }
 
-    /** @test */
-    public function using_no_token_returns_unauthorised()
+    /**
+     * Test that no token returns a 401 Unauthorized response.
+     *
+     * @return void
+     */
+    public function test_using_no_token_returns_unauthorised(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a token (not used in the request)
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test');
+        // Send a request without a token
+        $response = $this->call('GET', '/_test');
 
+        // Assert that the response is 401 Unauthorized
         $response->assertStatus(401);
     }
 
-    /** @test */
-    public function using_a_valid_token_as_a_url_param_returns_ok()
+    /**
+     * Test that a valid token in a URL parameter returns a 200 OK response.
+     *
+     * @return void
+     */
+    public function test_using_a_valid_token_as_a_url_param_returns_ok(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a valid token for the 'test' service
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test', ['api_token' => $token]);
+        // Send a request with the valid token as a URL parameter
+        $response = $this->call('GET', '/_test', ['api_token' => $token]);
 
+        // Assert that the response is 200 OK
         $response->assertStatus(200);
     }
 
-    /** @test */
-    public function using_a_valid_token_as_a_json_field_returns_ok()
+    /**
+     * Test that a valid token in a JSON payload returns a 200 OK response.
+     *
+     * @return void
+     */
+    public function test_using_a_valid_token_as_a_json_field_returns_ok(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
-        $response = $this->json('GET', '_test', ['api_token' => $token]);
+        // Create a valid token for the 'test' service
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
+        // Send a JSON request with the valid token
+        $response = $this->json('GET', '/_test', ['api_token' => $token]);
+
+        // Assert that the response is 200 OK
         $response->assertStatus(200);
     }
 
-    /** @test */
-    public function using_a_valid_token_as_a_form_field_returns_ok()
+    /**
+     * Test that a valid token in a form field returns a 200 OK response.
+     *
+     * @return void
+     */
+    public function test_using_a_valid_token_as_a_form_field_returns_ok(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
-        $response = $this->call('POST', '_test', ['api_token' => $token]);
+        // Create a valid token for the 'test' service
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
+        // Send a POST request with the valid token as a form field
+        $response = $this->call('POST', '/_test', ['api_token' => $token]);
+
+        // Assert that the response is 200 OK
         $response->assertStatus(200);
     }
 
-    /** @test */
-    public function using_a_valid_token_as_a_bearer_token_returns_ok()
+    /**
+     * Test that a valid token as a Bearer token returns a 200 OK response.
+     *
+     * @return void
+     */
+    public function test_using_a_valid_token_as_a_bearer_token_returns_ok(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:test')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a valid token for the 'test' service
+        $token = ApiToken::createNew('test');
+        // Register a test route with the apitoken middleware
+        Route::middleware('apitoken:test')->any('/_test', fn() => 'OK');
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])->get('_test');
+        // Send a request with the valid token as a Bearer token
+        $response = $this->withHeaders(['Authorization' => "Bearer {$token}"])->get('/_test');
 
+        // Assert that the response is 200 OK
         $response->assertStatus(200);
     }
 
-    /** @test */
-    public function we_can_use_multiple_api_service_tokens()
+    /**
+     * Test that multiple service tokens can be used, and invalid ones are rejected.
+     *
+     * @return void
+     */
+    public function test_we_can_use_multiple_api_service_tokens(): void
     {
-        $this->withoutExceptionHandling();
-        $token1 = \App\ApiToken::createNew('test1');
-        $token2 = \App\ApiToken::createNew('test2');
-        $token3 = \App\ApiToken::createNew('test3');
-        \Route::middleware('apitoken:test1,test2')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create tokens for multiple services
+        $token1 = ApiToken::createNew('test1');
+        $token2 = ApiToken::createNew('test2');
+        $token3 = ApiToken::createNew('test3');
+        // Register a test route allowing test1 and test2 services
+        Route::middleware('apitoken:test1,test2')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test', ['api_token' => $token1]);
+        // Test with token1 (valid)
+        $response = $this->call('GET', '/_test', ['api_token' => $token1]);
         $response->assertStatus(200);
 
-        $response = $this->call('GET', '_test', ['api_token' => $token2]);
+        // Test with token2 (valid)
+        $response = $this->call('GET', '/_test', ['api_token' => $token2]);
         $response->assertStatus(200);
 
-        $response = $this->call('GET', '_test', ['api_token' => $token3]);
+        // Test with token3 (invalid for this route)
+        $response = $this->call('GET', '/_test', ['api_token' => $token3]);
         $response->assertStatus(401);
     }
 
-    /** @test */
-    public function using_a_non_existant_service_name_always_returns_unauthorised()
+    /**
+     * Test that a non-existent service name returns a 401 Unauthorized response.
+     *
+     * @return void
+     */
+    public function test_using_a_non_existant_service_name_always_returns_unauthorised(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken:nottest')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a token for a valid service
+        $token = ApiToken::createNew('test');
+        // Register a test route with a non-existent service
+        Route::middleware('apitoken:nottest')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test', ['api_token' => $token]);
+        // Send a request with the token
+        $response = $this->call('GET', '/_test', ['api_token' => $token]);
 
+        // Assert that the response is 401 Unauthorized
         $response->assertStatus(401);
     }
 
-    /** @test */
-    public function using_no_service_name_always_returns_unauthorised()
+    /**
+     * Test that no service name returns a 401 Unauthorized response.
+     *
+     * @return void
+     */
+    public function test_using_no_service_name_always_returns_unauthorised(): void
     {
-        $token = \App\ApiToken::createNew('test');
-        \Route::middleware('apitoken')->any('/_test/', function () {
-            return 'OK';
-        });
+        // Create a token for a valid service
+        $token = ApiToken::createNew('test');
+        // Register a test route with no service specified
+        Route::middleware('apitoken')->any('/_test', fn() => 'OK');
 
-        $response = $this->call('GET', '_test', ['api_token' => $token]);
+        // Send a request with the token
+        $response = $this->call('GET', '/_test', ['api_token' => $token]);
 
+        // Assert that the response is 401 Unauthorized
         $response->assertStatus(401);
     }
 }
