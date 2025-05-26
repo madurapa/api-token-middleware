@@ -48,16 +48,17 @@ class BasicApiTokenMiddleware
             return false;
         }
 
-        // Optimize query to fetch only the first matching token
-        $apiToken = ApiToken::whereIn('service', $services)
-            ->whereNotNull('token')
-            ->first();
+        foreach ($services as $service) {
+            $apiToken = ApiToken::where('service', $service)
+                ->whereNotNull('token')
+                ->first();
 
-        if (!$apiToken) {
-            return false;
+            if ($apiToken && Hash::check($passedToken, $apiToken->token)) {
+                return true;
+            }
         }
 
-        return Hash::check($passedToken, $apiToken->token);
+        return false;
     }
 
     /**

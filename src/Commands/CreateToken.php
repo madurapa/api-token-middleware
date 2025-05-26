@@ -60,7 +60,7 @@ class CreateToken extends Command
             );
 
             // Provide additional usage instructions
-            $this->comment('Use this token in API requests via Authorization: Bearer <token> or api_token query parameter.');
+            $this->comment('Use this token in API requests via Authorization: Bearer <token>.');
 
             return 0; // Success
         } catch (\InvalidArgumentException $e) {
