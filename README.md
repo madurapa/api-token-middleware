@@ -87,6 +87,15 @@ curl -H "Authorization: Bearer jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx" https://my-proj
 {"message":"Unauthorized"}
 ```
 
+**Laravel Example:**
+
+```php
+use Illuminate\Support\Facades\Http;
+Http::withHeaders([
+    'Authorization' => 'Bearer jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx',
+])->get('https://my-project.test/api/hello');
+```
+
 **AJAX Example:**
 
 ```javascript
