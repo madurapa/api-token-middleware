@@ -1,79 +1,169 @@
-# Basic API key middleware for Laravel
 
-This is a simple key-based middleware for Laravel.  It suited our common use-case of internal apps which need access to other internal apps (machine-to-machine) without the hassles of oauth etc.
+# Basic API Token Middleware for Laravel
+
+This middleware provides a simple, secure token-based authentication mechanism for Laravel, designed for internal machine-to-machine communication (e.g., internal apps accessing other internal APIs) without the complexity of OAuth.
+
+> ⚠️ **Security Note**: Always send API tokens via `Authorization: Bearer` headers. Do not use query parameters or POST body fields as they are insecure and unsupported.
+
+---
 
 ## Installation
 
-You should be able to pull it in using composer :
+Install the package via Composer:
 
-```
+```bash
 composer require uogsoe/basic-api-token-middleware
 ```
 
-Then you have to publish the database migration and ApiKey model :
-```
+Publish the database migration and model:
+
+```bash
 php artisan vendor:publish
 ```
-And pick `UoGSoE\ApiTokenMiddleware\ApiTokenServiceProvider` from the list.  Then run the migration :
-```
+
+Select:`UoGSoE\ApiTokenMiddleware\ApiTokenServiceProvider`
+
+Run the migration to create the `api_tokens` table:
+
+```bash
 php artisan migrate
 ```
 
+---
+
 ## Usage
 
-First of all you create a token for the consuming 'service' (eg, the remote client) :
-```
+### Creating a Token
+
+Generate a token for a service (e.g., `testservice`):
+
+```bash
 php artisan apitoken:create testservice
 ```
-That will create the token and show it to you.  You need to take note of the token as your client will have to use it to access the routes.
 
-Now in your `routes/api.php` file you can use the middleware to wrap endpoints :
-```
-Route::group(['middleware' => 'apitoken:testservice'], function () {
-    Route::get('/hello', function () {
-        return 'hello';
-    });
+> The token will only be displayed once. Store it securely.
+
+---
+
+### Protecting Routes
+
+In `routes/api.php`, apply the middleware:
+
+```php
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('apitoken:testservice')->group(function () {
+    Route::get('/hello', fn() => response()->json(['message' => 'Hello, World!']));
 });
 ```
 
-If you try and access that route without passing the token you will get a 401 response :
+Multiple services:
+
+```php
+Route::middleware('apitoken:testservice,anotherservice')->group(function () {
+    Route::get('/hello', fn() => response()->json(['message' => 'Hello, World!']));
+});
 ```
-curl -kv https://my-project.test/api/hello
-...
-HTTP/2 401
+
+---
+
+### Authenticating Requests
+
+Send requests using the Authorization header:
+
+```bash
+curl -H "Authorization: Bearer jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx" https://my-project.test/api/hello
+```
+
+**Successful Response:**
+
+```json
+{"message": "Hello, World!"}
+```
+
+**Unauthorized Response:**
+
+```json
 {"message":"Unauthorized"}
 ```
-So pass the token you created above and it should let you through :
-```
-curl -kv https://my-project.test/api/hello?api_token=jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx
-...
-HTTP/2 200
-hello
+
+**AJAX Example:**
+
+```javascript
+fetch('https://my-project.test/api/hello', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx',
+    'Accept': 'application/json'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
 ```
 
-You can pass the token in various ways, like a GET param as above, a bearer token header or as part of the JSON body.  Eg:
-```
-$this->withHeaders([
-    'Authorization' => 'Bearer '.$tokenString,
-])->get('https://my-project.test/api/hello');
+> ❗ Avoid sending tokens via query strings or POST bodies - will result in a 401 Unauthorized response.
 
-$this->json('POST', 'https://my-project.test/api/hello', ['api_token' => $token]);
+---
 
-$this->call('POST', 'https://my-project.test/api/hello', ['api_token' => $token]);
-```
+## Managing Tokens
 
-You can use multiple service token names with a route if you want to seperate your api controls too :
-```
-Route::group(['middleware' => 'apitoken:testservice,anotherservice'], function () {
-    Route::get('/hello', function () {
-        return 'hello';
-    });
-});
+- **List all tokens:**
+
+```bash
+php artisan apitoken:list
 ```
 
-There are a few other artisan commands available to help manage the tokens :
+- **Regenerate a token:**
+
+```bash
+php artisan apitoken:regenerate testservice
 ```
-php artisan apitoken:list -- lists all current tokens
-php artisan apitoken:regenerate -- create a new token for a given service
-php artisan apitoken:delete -- deletes a given service token
+
+- **Delete a token:**
+
+```bash
+php artisan apitoken:delete testservice
 ```
+
+---
+
+## Security Best Practices
+
+- **Use HTTPS**: Encrypt all API traffic.
+- **Secure Token Storage**: Use environment variables, secret vaults, or HTTP-only secure cookies. Avoid client-side exposure.
+- **Token Expiry**: Use `apitoken:regenerate` periodically.
+- **CORS Configuration** (in `config/cors.php`):
+
+```php
+'allowed_origins' => ['https://your-frontend.com'],
+'supports_credentials' => true,
+```
+
+- **Rate Limiting**:
+
+```php
+Route::middleware('throttle:60,1')->get('/hello', fn() => response()->json(['message' => 'Hello, World!']));
+```
+
+- **XSS Protection**: Use Content Security Policy (CSP) and sanitize inputs.
+
+---
+
+## Upgrading from Previous Versions
+
+If you were using `?api_token=` in URLs or POST bodies, **update clients** to use `Authorization: Bearer` headers immediately. These methods are no longer supported.
+
+---
+
+## Contributing
+
+Contributions are welcome!  
+Submit PRs at: [https://github.com/uogsoe/basic-api-token-middleware](https://github.com/uogsoe/basic-api-token-middleware)  
+Ensure tests and security practices are followed.
+
+---
+
+## License
+
+This project is licensed under the **MIT License**.

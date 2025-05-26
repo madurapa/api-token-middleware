@@ -2,12 +2,15 @@
 
 namespace UoGSoE\ApiTokenMiddleware;
 
-use Closure;
 use App\Models\ApiToken;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Middleware to authenticate API requests using Bearer tokens.
+ */
 class BasicApiTokenMiddleware
 {
     public const CODE = 401;
@@ -58,13 +61,13 @@ class BasicApiTokenMiddleware
     }
 
     /**
-     * Extract the API token from the request.
+     * Extract the API token from the request's Authorization header.
      *
      * @param Request $request
      * @return string|null
      */
     protected function extractToken(Request $request): ?string
     {
-        return $request->bearerToken() ?? $request->input('api_token');
+        return $request->bearerToken();
     }
 }
