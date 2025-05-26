@@ -78,12 +78,14 @@ curl -H "Authorization: Bearer jT7ryt28gi3YCvgE4WvluO1uVcb0ndVx" https://my-proj
 **Successful Response:**
 
 ```json
+HTTP/2 200
 {"message": "Hello, World!"}
 ```
 
 **Unauthorized Response:**
 
 ```json
+HTTP/2 401
 {"message":"Unauthorized"}
 ```
 
